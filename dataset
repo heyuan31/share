@@ -1,0 +1,75 @@
+import torch 
+from torch import nn
+from torch import optim
+import openpyxl
+from torch.utils.data import Dataset
+
+data_amount=10;#样本个数
+data_length=10000;#样本长度
+data_dim=2;#样本维数
+data_class=3;
+data_train=torch.zeros(data_amount*data_class,data_length,data_dim);
+data_label=torch.zeros(data_amount*3);
+data_number=0;
+
+#def data_pre(data_suf,data_name):#后缀数目，数据名称
+data_pre='data_test/ball';
+data_suf='.xlsx';
+
+#ball_labek->1
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=0;
+    data_number=data_number+1;
+    print(data_number);
+
+
+data_pre='data_test/innerrace';
+
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=1;
+    data_number=data_number+1;
+    print(data_number);
+
+data_pre='data_test/normal';
+
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=2;
+    data_number=data_number+1;
+    print(data_number);
+
+
+
+#制作为数据集？？？但是哪里有数据集的样子了，不就是合并了一下吗
+class my_dataset(Dataset):
+
+    def __init__(self,data,label):
+        self.data=data;
+        self.label=label;
+
+    def __len__(self):
+        return len(self.data);
+
+    def __getitem__(self,idx):
+        sample=[self.data[idx,:,:],self.label[idx]];
+        return sample;
+
+data=my_dataset(data_train,data_label);
+
