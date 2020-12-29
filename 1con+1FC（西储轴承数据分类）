@@ -4,7 +4,7 @@ import time
 import openpyxl
 from torch.utils.data import Dataset
 
-#自定义数据集，本程序未使用该方法
+
 class my_dataset(Dataset):
 
     def __init__(self,data,label):
@@ -19,7 +19,7 @@ class my_dataset(Dataset):
         return sample;
 
 
-#读入数据集
+
 data_amount=10;#样本个数
 data_length=10000;#样本长度  
 data_dim=2;#样本维数
@@ -81,7 +81,6 @@ for i in range(data_amount*3):
 #data_train_t=data_train_t.long();
 #data_label=data_label.long();
 
-#通用制作数据集手段
 torch_dataset=torch.utils.data.TensorDataset(data_train_t,data_label);
 loader = torch.utils.data.DataLoader(
     dataset=torch_dataset,      # 数据，封装进Data.TensorDataset()类的数据
@@ -99,18 +98,20 @@ data=my_dataset(data_train,data_label);
 
 
 
-#net结构
+
 class con_net(torch.nn.Module):
 
     def __init__(self):       
         super(con_net,self).__init__();
         self.convs=torch.nn.Conv1d(2,3,256,stride=203);
+        self.mul=torch.nn.Linear(49*3,49*3);
         self.fc=torch.nn.Linear(49*3,3);
         self.softmax=torch.nn.Softmax()
 
     def forward(self,input):
-        output=torch.nn.functional.relu(self.convs(input));   
-        output=torch.reshape(output,(3,-1))
+        output=torch.nn.functional.relu(self.convs(input));       
+        output=torch.reshape(output,(3,-1));
+        output=torch.nn.functional.relu(self.mul(output));   
         #print(output.size())
         output=torch.nn.functional.relu(self.fc(output));
         #print(output.size());        
@@ -118,14 +119,15 @@ class con_net(torch.nn.Module):
         #print(output.size());
         return output;
 
-#init
-net=con_net();
+
+
+
+net=con_net();#init
 net.cuda();
 epochs=1000;
 #start_time=time.time();
-opt = torch.optim.SGD(net.parameters(),lr=0.001)#随机梯度下降
+opt = torch.optim.SGD(net.parameters(),lr=0.01)#随机梯度下降
 
-#train
 for i in range(epochs):
     #print('执行'+str(i));
     for step,(x,y) in enumerate(loader):
@@ -144,15 +146,18 @@ for i in range(epochs):
         loss.backward();
         opt.step();
         
+        
 #predict
 for step,(x,y) in enumerate(loader):
     trains=x.cuda();
     labels=y.cuda();
     prediction=net(trains);
-    print(prediction);
+    print(prediction.size());
+    class_pre=torch.tensor(3);
+    class_pre=torch.argmax(prediction,dim=1);
+    print(prediction)
+    print(class_pre);
     print(labels);
     print('end'+str(step));
     
-
-
 
