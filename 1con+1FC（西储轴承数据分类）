@@ -1,0 +1,155 @@
+import torch
+import test_dataset
+import time
+import openpyxl
+from torch.utils.data import Dataset
+
+
+class my_dataset(Dataset):
+
+    def __init__(self,data,label):
+        self.data=data;
+        self.label=label;
+
+    def __len__(self):
+        return len(self.data);
+
+    def __getitem__(self,idx):
+        sample=[self.data[idx,:,:],self.label[idx]];
+        return sample;
+
+
+
+data_amount=10;#样本个数
+data_length=10000;#样本长度  
+data_dim=2;#样本维数
+data_class=3;
+data_train=torch.zeros(data_amount*data_class,data_length,data_dim);
+data_train_t=torch.zeros(data_amount*data_class,data_dim,data_length);
+data_label=torch.zeros(data_amount*3);
+data_number=0;
+
+#def data_pre(data_suf,data_name):#后缀数目，数据名称
+data_pre='data_test/ball';
+data_suf='.xlsx';
+
+#ball_labek->1
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=0;
+    data_number=data_number+1;
+    print(data_number);
+
+
+data_pre='data_test/innerrace';
+
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=1;
+    data_number=data_number+1;
+    print(data_number);
+
+data_pre='data_test/normal';
+
+for num in range(data_amount):
+    data_name=data_pre+str(num+1)+data_suf;
+    wb=openpyxl.load_workbook(data_name);
+    ws=wb["Sheet1"];
+    for i in range(data_dim):
+        for j in range(data_length):
+            data_train[data_number][j][i]=ws.cell(row=j+1,column=i+1).value;
+    data_label[data_number]=2;
+    data_number=data_number+1;
+    print(data_number);
+
+
+#print(data_train.size())
+for i in range(data_amount*3):
+    data_train_t[i]=data_train[i].t();
+#print(data_train_t.size())
+
+#data_train_t=data_train_t.long();
+#data_label=data_label.long();
+
+torch_dataset=torch.utils.data.TensorDataset(data_train_t,data_label);
+loader = torch.utils.data.DataLoader(
+    dataset=torch_dataset,      # 数据，封装进Data.TensorDataset()类的数据
+    batch_size=3,      # 每块的大小
+    shuffle=True               # 要不要打乱数据 (打乱比较好)
+    #num_workers=1,              # 多进程（multiprocess）来读数据
+)
+'''
+for i in range(data_amount*3):
+    data_train[i].t();
+    data_label[i].t();
+
+data=my_dataset(data_train,data_label);
+'''
+
+
+
+
+class con_net(torch.nn.Module):
+
+    def __init__(self):       
+        super(con_net,self).__init__();
+        self.convs=torch.nn.Conv1d(2,3,256,stride=203);
+        self.fc=torch.nn.Linear(49*3,3);
+        self.softmax=torch.nn.Softmax()
+
+    def forward(self,input):
+        output=torch.nn.functional.relu(self.convs(input));   
+        output=torch.reshape(output,(3,-1))
+        #print(output.size())
+        output=torch.nn.functional.relu(self.fc(output));
+        #print(output.size());        
+        output=self.softmax(output);
+        #print(output.size());
+        return output;
+
+
+net=con_net();#init
+net.cuda();
+epochs=1000;
+#start_time=time.time();
+opt = torch.optim.SGD(net.parameters(),lr=0.001)#随机梯度下降
+
+for i in range(epochs):
+    #print('执行'+str(i));
+    for step,(x,y) in enumerate(loader):
+        #print('执行'+str(i))+'(2)';
+        trains=x.cuda();
+        labels=y.cuda();
+        output=net(trains);
+        #print(labels.size())
+        net.zero_grad();
+        #output_long=torch.LongTensor(output.cpu().detach().numpy() );
+        #labels_long=torch.LongTensor(labels.cpu().detach().numpy() );
+        #output_long=output.long();
+        labels_long=labels.long();
+        loss=torch.nn.functional.cross_entropy(output,labels_long);
+        print('执行'+str(i),loss);
+        loss.backward();
+        opt.step();
+#predict
+for step,(x,y) in enumerate(loader):
+    trains=x.cuda();
+    labels=y.cuda();
+    prediction=net(trains);
+    print(prediction);
+    print(labels);
+    print('end'+str(step));
+    
+
+
+
