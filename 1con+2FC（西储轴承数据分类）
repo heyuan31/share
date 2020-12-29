@@ -4,7 +4,7 @@ import time
 import openpyxl
 from torch.utils.data import Dataset
 
-
+#自定义数据集，但本程序未使用该方法，使用较为死板简单的方法，具体在下文
 class my_dataset(Dataset):
 
     def __init__(self,data,label):
@@ -19,7 +19,7 @@ class my_dataset(Dataset):
         return sample;
 
 
-
+#读入数据集
 data_amount=10;#样本个数
 data_length=10000;#样本长度  
 data_dim=2;#样本维数
@@ -81,12 +81,14 @@ for i in range(data_amount*3):
 #data_train_t=data_train_t.long();
 #data_label=data_label.long();
 
+
+#公式化数据分批次方法
 torch_dataset=torch.utils.data.TensorDataset(data_train_t,data_label);
 loader = torch.utils.data.DataLoader(
     dataset=torch_dataset,      # 数据，封装进Data.TensorDataset()类的数据
     batch_size=3,      # 每块的大小
     shuffle=True               # 要不要打乱数据 (打乱比较好)
-    #num_workers=1,              # 多进程（multiprocess）来读数据
+    #num_workers=1,              # 多进程（multiprocess）来读数据,只有一个cpu的情况下一定要取1
 )
 '''
 for i in range(data_amount*3):
@@ -98,7 +100,7 @@ data=my_dataset(data_train,data_label);
 
 
 
-
+#网络结构，一个con提取特征，两个fc（全连接）做分类
 class con_net(torch.nn.Module):
 
     def __init__(self):       
@@ -121,13 +123,14 @@ class con_net(torch.nn.Module):
 
 
 
-
-net=con_net();#init
+#网络的初始化等（init）
+net=con_net();
 net.cuda();
 epochs=1000;
 #start_time=time.time();
 opt = torch.optim.SGD(net.parameters(),lr=0.01)#随机梯度下降
 
+#网络的训练，可尝试加入多种变学习率方法，学习率为0.01时，最低softmax损失为0.55左右
 for i in range(epochs):
     #print('执行'+str(i));
     for step,(x,y) in enumerate(loader):
@@ -147,7 +150,7 @@ for i in range(epochs):
         opt.step();
         
         
-#predict
+#predict，输出预测结果，三十个小样本全部正确
 for step,(x,y) in enumerate(loader):
     trains=x.cuda();
     labels=y.cuda();
